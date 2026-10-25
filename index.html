@@ -1,163 +1,564 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#2563eb">
-<title>TextSnap AI — استخراج النص من الصور</title>
-<link rel="manifest" href="manifest.webmanifest">
+<title>TextSnap AI | استخراج النص من الصور</title>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
 <style>
-:root{--blue:#2563eb;--navy:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f5f8ff;--card:#fff}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;background:linear-gradient(150deg,#eef4ff,#f8fafc 45%,#eefcf8);color:var(--navy)}
-header{padding:28px 18px 20px;text-align:center;background:linear-gradient(125deg,#1d4ed8,#4338ca);color:#fff}
-.logo{width:52px;height:52px;border-radius:16px;display:inline-grid;place-items:center;background:#ffffff22;font-size:27px;margin-bottom:8px}
-header h1{margin:0;font-size:clamp(25px,5vw,36px)}header p{margin:8px auto 0;max-width:620px;color:#e0e7ff;line-height:1.7}
-main{width:min(100% - 28px,960px);margin:22px auto 40px}.layout{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 10px 30px #0f172a0a;min-width:0}
-.card h2{font-size:18px;margin:0 0 14px}.upload{display:grid;place-items:center;text-align:center;border:2px dashed #bfdbfe;background:#f8fbff;border-radius:16px;padding:22px 14px;min-height:170px;cursor:pointer}
-.upload:hover{background:#eff6ff}.upload strong{display:block;margin:8px 0 4px}.sub{font-size:13px;color:var(--muted);line-height:1.6}
-input,select,textarea{font:inherit;width:100%;border:1px solid #cbd5e1;border-radius:12px;padding:11px;background:white;color:var(--navy)}
-textarea{resize:vertical;min-height:230px;line-height:1.8}
-label{display:block;font-size:14px;font-weight:650;margin:14px 0 7px}
-button{font:inherit;border:0;border-radius:12px;padding:11px 14px;cursor:pointer;font-weight:700;transition:.15s}
-button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--blue);color:white}.primary:hover{background:#1d4ed8}.secondary{background:#eaf1ff;color:#1d4ed8}.neutral{background:#f1f5f9;color:#334155}.danger{background:#fff1f2;color:#be123c}
-.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.actions button{flex:1 1 auto}
-.preview{width:100%;max-height:260px;object-fit:contain;display:none;margin-top:12px;border-radius:12px;background:#f1f5f9}
-.status{margin-top:12px;background:#f1f5f9;border-radius:12px;padding:10px 12px;font-size:13px;color:#475569;line-height:1.6;white-space:pre-wrap}
-.status.error{background:#fff1f2;color:#9f1239}.status.ok{background:#ecfdf5;color:#065f46}
-.progress{height:7px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:9px;display:none}.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,#22c55e);transition:width .25s}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hint{font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px}
-footer{text-align:center;color:var(--muted);font-size:12px;padding:0 16px 28px}
-@media(max-width:720px){.layout{grid-template-columns:1fr}.card{padding:15px}textarea{min-height:200px}header{padding-top:23px}}
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ font-family:Arial,Tahoma,sans-serif;
+ background:#f4f7fc;
+ color:#172033;
+}
+
+header{
+ background:linear-gradient(135deg,#1749c5,#3478f6);
+ color:white;
+ padding:30px 18px;
+ text-align:center;
+}
+
+.logo{
+ display:inline-flex;
+ width:58px;
+ height:58px;
+ align-items:center;
+ justify-content:center;
+ background:#ffffff22;
+ border-radius:18px;
+ font-size:30px;
+ margin-bottom:10px;
+}
+
+header h1{margin:0;font-size:30px}
+header p{color:#e4edff;line-height:1.8;margin-bottom:0}
+
+main{
+ max-width:1000px;
+ margin:25px auto;
+ padding:0 15px;
+}
+
+.card{
+ background:white;
+ border:1px solid #e3e9f3;
+ border-radius:22px;
+ padding:22px;
+ margin-bottom:18px;
+ box-shadow:0 8px 30px #18345c08;
+}
+
+h2{font-size:20px;margin:0 0 18px}
+
+.upload{
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ min-height:190px;
+ border:2px dashed #9fc2ff;
+ border-radius:18px;
+ background:#f5f9ff;
+ cursor:pointer;
+ text-align:center;
+ padding:20px;
+}
+
+.upload:hover{background:#edf5ff}
+
+.upload .camera{font-size:42px}
+.upload strong{font-size:18px;margin:12px 0}
+.muted{color:#718096;font-size:14px;line-height:1.8}
+
+#preview{
+ display:none;
+ width:100%;
+ max-height:300px;
+ object-fit:contain;
+ margin-top:15px;
+ border-radius:14px;
+ background:#f1f5f9;
+}
+
+label{
+ display:block;
+ font-weight:bold;
+ margin:17px 0 8px;
+}
+
+select,textarea,input{
+ width:100%;
+ border:1px solid #d4deeb;
+ border-radius:13px;
+ padding:13px;
+ font:inherit;
+ background:white;
+}
+
+textarea{
+ min-height:210px;
+ line-height:1.9;
+ resize:vertical;
+}
+
+button{
+ border:0;
+ border-radius:13px;
+ padding:13px 18px;
+ font:inherit;
+ font-weight:bold;
+ cursor:pointer;
+}
+
+button:disabled{opacity:.5;cursor:not-allowed}
+
+.primary{background:#2563eb;color:white}
+.secondary{background:#eaf1ff;color:#2458c5}
+.gray{background:#f0f3f8;color:#35445c}
+
+.buttons{
+ display:flex;
+ gap:10px;
+ flex-wrap:wrap;
+ margin-top:14px;
+}
+
+.buttons button{flex:1}
+
+.status{
+ background:#f1f5f9;
+ border-radius:12px;
+ padding:13px;
+ margin-top:15px;
+ color:#475569;
+ font-size:14px;
+ line-height:1.8;
+ white-space:pre-wrap;
+}
+
+.status.success{background:#eafaf1;color:#166534}
+.status.error{background:#fff0f0;color:#b42318}
+
+.progress{
+ height:7px;
+ background:#e5eaf2;
+ border-radius:10px;
+ overflow:hidden;
+ margin-top:12px;
+ display:none;
+}
+
+.progress div{
+ width:0;
+ height:100%;
+ background:#2563eb;
+ transition:width .2s;
+}
+
+.grid{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:18px;
+}
+
+footer{
+ text-align:center;
+ color:#8490a3;
+ font-size:13px;
+ padding:20px;
+}
+
+@media(max-width:700px){
+ .grid{grid-template-columns:1fr}
+ header h1{font-size:25px}
+ .card{padding:17px}
+}
 </style>
 </head>
+
 <body>
+
 <header>
-  <div class="logo">文</div>
-  <h1>TextSnap AI</h1>
-  <p>حوّل النص الموجود في الصور إلى نص قابل للتحرير والنسخ والترجمة والتنزيل.</p>
+ <div class="logo">文</div>
+ <h1>TextSnap AI</h1>
+ <p>حوّل الصور إلى نصوص قابلة للتحرير والنسخ والترجمة</p>
 </header>
+
 <main>
-<div class="layout">
+
+<div class="grid">
+
 <section class="card">
-  <h2>① اختر صورة</h2>
-  <label class="upload" for="imageInput">
-    <div><div style="font-size:32px">📷</div><strong>اضغط لاختيار صورة</strong><span class="sub">JPG أو PNG أو صورة ملتقطة بالكاميرا</span></div>
-  </label>
-  <input id="imageInput" type="file" accept="image/*" capture="environment" hidden>
-  <img id="preview" class="preview" alt="معاينة الصورة المختارة">
-  <label for="ocrLang">لغة النص داخل الصورة</label>
-  <select id="ocrLang">
-    <option value="ara+eng+fra">العربية والإنجليزية والفرنسية</option>
-    <option value="ara">العربية</option>
-    <option value="fra">الفرنسية</option>
-    <option value="eng">الإنجليزية</option>
-    <option value="ara+fra">العربية والفرنسية</option>
-    <option value="ara+eng">العربية والإنجليزية</option>
-  </select>
-  <div class="actions"><button id="extractBtn" class="primary" disabled>استخراج النص</button><button id="clearBtn" class="neutral">مسح</button></div>
-  <div class="progress" id="progress"><span id="progressBar"></span></div>
-  <div id="ocrStatus" class="status" aria-live="polite">اختر صورة ثم اضغط «استخراج النص». تتم معالجة الصورة في المتصفح باستخدام Tesseract.js.</div>
-  <p class="hint">قد تستغرق أول عملية وقتًا أطول لأن بيانات اللغة تُحمّل أول مرة. وضوح الصورة يؤثر في الدقة.</p>
+
+<h2>① اختر صورة</h2>
+
+<label class="upload" for="imageInput">
+ <span class="camera">📷</span>
+ <strong>اضغط لاختيار صورة</strong>
+ <span class="muted">
+ اختر صورة من معرض الهاتف أو التقط صورة بالكاميرا
+ </span>
+</label>
+
+<input
+ id="imageInput"
+ type="file"
+ accept="image/*"
+ hidden
+>
+
+<img id="preview" alt="معاينة الصورة">
+
+<label for="language">لغة النص داخل الصورة</label>
+
+<select id="language">
+ <option value="ara+eng+fra">العربية والإنجليزية والفرنسية</option>
+ <option value="ara">العربية</option>
+ <option value="eng">الإنجليزية</option>
+ <option value="fra">الفرنسية</option>
+ <option value="ara+eng">العربية والإنجليزية</option>
+ <option value="ara+fra">العربية والفرنسية</option>
+</select>
+
+<div class="buttons">
+ <button id="extract" class="primary" disabled>
+ استخراج النص
+ </button>
+
+ <button id="clear" class="gray">
+ مسح
+ </button>
+</div>
+
+<div class="progress" id="progress">
+ <div id="bar"></div>
+</div>
+
+<div class="status" id="status">
+ اختر صورة ثم اضغط استخراج النص.
+</div>
+
 </section>
+
 <section class="card">
-  <h2>② النص المستخرج</h2>
-  <textarea id="sourceText" placeholder="سيظهر النص المستخرج هنا، ويمكنك تعديله يدويًا..." spellcheck="false"></textarea>
-  <div class="actions">
-    <button id="copyBtn" class="secondary">نسخ النص</button>
-    <button id="txtBtn" class="neutral">تنزيل TXT</button>
-    <button id="pdfBtn" class="neutral">حفظ PDF</button>
-  </div>
-  <label for="targetLang">ترجمة النص إلى</label>
-  <div class="row">
-    <select id="targetLang">
-      <option value="ar">العربية</option><option value="fr">الفرنسية</option><option value="en" selected>الإنجليزية</option><option value="es">الإسبانية</option><option value="de">الألمانية</option><option value="it">الإيطالية</option><option value="tr">التركية</option>
-    </select>
-    <button id="translateBtn" class="primary">ترجمة النص</button>
-  </div>
-  <label for="translatedText">النص المترجم</label>
-  <textarea id="translatedText" placeholder="ستظهر الترجمة هنا..." style="min-height:150px"></textarea>
-  <div class="actions"><button id="copyTranslationBtn" class="secondary">نسخ الترجمة</button><button id="translationTxtBtn" class="neutral">تنزيل الترجمة TXT</button></div>
-  <div id="translateStatus" class="status" aria-live="polite">الترجمة تحتاج إلى اتصال بالإنترنت وخدمة ترجمة متاحة.</div>
-</section>
+
+<h2>② النص المستخرج</h2>
+
+<textarea
+ id="text"
+ placeholder="سيظهر النص المستخرج هنا..."
+></textarea>
+
+<div class="buttons">
+ <button id="copy" class="secondary">نسخ النص</button>
+ <button id="download" class="gray">تنزيل TXT</button>
 </div>
-<section class="card" style="margin-top:16px">
-<h2>إعدادات الترجمة (اختيارية)</h2>
-<p class="sub">يمكنك إدخال عنوان خادم LibreTranslate الذي تملكه أو لديك إذن باستخدامه. لا تضع مفتاح API سريًا في موقع عام؛ الأفضل تمريره عبر خادم خلفي.</p>
-<div class="row">
-  <div><label for="apiUrl">عنوان خدمة الترجمة</label><input id="apiUrl" type="url" value="https://libretranslate.com/translate" placeholder="https://your-server/translate"></div>
-  <div><label for="apiKey">مفتاح API (إن لزم)</label><input id="apiKey" type="password" placeholder="اتركه فارغًا إن لم يكن مطلوبًا" autocomplete="off"></div>
+
+<label for="target">ترجمة النص إلى</label>
+
+<select id="target">
+ <option value="ar">العربية</option>
+ <option value="en">الإنجليزية</option>
+ <option value="fr">الفرنسية</option>
+ <option value="es">الإسبانية</option>
+ <option value="de">الألمانية</option>
+ <option value="it">الإيطالية</option>
+ <option value="tr">التركية</option>
+</select>
+
+<div class="buttons">
+ <button id="translate" class="primary">
+ ترجمة النص
+ </button>
 </div>
-<p class="hint">الخدمة العامة قد تتطلب مفتاحًا أو تحدّ من الطلبات، وقد تمنع طلبات المتصفح بسبب إعدادات CORS. عند حدوث ذلك، استخدم خادم ترجمة خاصًا أو وسيطًا خلفيًا.</p>
+
+<label for="translated">النص المترجم</label>
+
+<textarea
+ id="translated"
+ placeholder="ستظهر الترجمة هنا..."
+></textarea>
+
+<div class="buttons">
+ <button id="copyTranslation" class="secondary">
+ نسخ الترجمة
+ </button>
+
+ <button id="downloadTranslation" class="gray">
+ تنزيل الترجمة
+ </button>
+</div>
+
+<div class="status" id="translationStatus">
+ اختر النص واللغة لبدء الترجمة.
+</div>
+
 </section>
+
+</div>
+
+<section class="card">
+
+<h2>مميزات TextSnap AI</h2>
+
+<p class="muted">
+ استخراج النص من الصور، تعديل النصوص، نسخها،
+ تنزيلها وترجمتها إلى لغات متعددة.
+</p>
+
+<p class="muted">
+ تتم معالجة الصور بواسطة OCR داخل المتصفح.
+
+</p>
+
+</section>
+
 </main>
-<footer>TextSnap AI — نموذج أولي مجاني. الصور لا تُرفع لخدمة OCR من خلال هذا التطبيق؛ الترجمة ترسل النص إلى الخدمة التي تختارها.</footer>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<footer>
+TextSnap AI © 2026
+</footer>
+
 <script>
+
 const $ = id => document.getElementById(id);
-let selectedFile = null;
-const setStatus = (id, msg, kind='') => { const el=$(id); el.textContent=msg; el.className='status '+kind; };
-const downloadText = (name, text) => {
-  const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
-  const url=URL.createObjectURL(blob); const a=document.createElement('a');
-  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-};
-$('imageInput').addEventListener('change', e => {
-  selectedFile=e.target.files?.[0] || null;
-  $('extractBtn').disabled=!selectedFile;
-  $('preview').style.display=selectedFile?'block':'none';
-  if(selectedFile){ $('preview').src=URL.createObjectURL(selectedFile); setStatus('ocrStatus',`تم اختيار: ${selectedFile.name}. اضغط «استخراج النص».`); }
+
+let file = null;
+
+function status(message,type=""){
+ $("status").textContent=message;
+ $("status").className="status "+type;
+}
+
+function translationStatus(message,type=""){
+ $("translationStatus").textContent=message;
+ $("translationStatus").className="status "+type;
+}
+
+$("imageInput").addEventListener("change",function(e){
+
+ file=e.target.files[0];
+
+ if(!file)return;
+
+ if(!file.type.startsWith("image/")){
+  status("الرجاء اختيار صورة صحيحة","error");
+  return;
+ }
+
+ $("preview").src=URL.createObjectURL(file);
+ $("preview").style.display="block";
+
+ $("extract").disabled=false;
+
+ status("تم اختيار الصورة. اضغط استخراج النص.");
+
 });
-$('extractBtn').addEventListener('click', async () => {
-  if(!selectedFile) return;
-  if(!window.Tesseract){setStatus('ocrStatus','تعذر تحميل مكتبة OCR. تحقق من اتصال الإنترنت ثم أعد تحميل الصفحة.','error');return;}
-  $('extractBtn').disabled=true; $('progress').style.display='block'; $('progressBar').style.width='0%';
-  setStatus('ocrStatus','جارٍ تحميل بيانات اللغة وقراءة الصورة...');
-  try{
-    const langs=$('ocrLang').value;
-    const result=await Tesseract.recognize(selectedFile, langs, {
-      logger: m => {
-        if(m.status){setStatus('ocrStatus',m.status+(m.progress!=null?' — '+Math.round(m.progress*100)+'%':''));}
-        if(m.progress!=null)$('progressBar').style.width=Math.round(m.progress*100)+'%';
-      }
-    });
-    $('sourceText').value=(result.data.text||'').trim();
-    $('progressBar').style.width='100%';
-    setStatus('ocrStatus',`اكتمل استخراج النص. مستوى الثقة التقريبي: ${Math.round(result.data.confidence||0)}%. راجع النص وصحّح الأخطاء عند الحاجة.`,'ok');
-  }catch(err){setStatus('ocrStatus','حدث خطأ أثناء استخراج النص: '+(err.message||err),'error');}
-  finally{$('extractBtn').disabled=!selectedFile;}
+
+$("extract").addEventListener("click",async function(){
+
+ if(!file)return;
+
+ if(!window.Tesseract){
+  status("تعذر تحميل OCR. تحقق من الإنترنت.","error");
+  return;
+ }
+
+ $("extract").disabled=true;
+ $("progress").style.display="block";
+ $("bar").style.width="0%";
+
+ status("جاري تحميل محرك التعرف على النص...");
+
+ try{
+
+  const result=await Tesseract.recognize(
+   file,
+   $("language").value,
+   {
+    logger:function(m){
+
+     if(m.progress!==undefined){
+      $("bar").style.width=
+       Math.round(m.progress*100)+"%";
+     }
+
+     if(m.status){
+      status(m.status);
+     }
+
+    }
+   }
+  );
+
+  $("text").value=result.data.text.trim();
+
+  status(
+   "تم استخراج النص بنجاح. يمكنك تعديله الآن.",
+   "success"
+  );
+
+  $("bar").style.width="100%";
+
+ }catch(error){
+
+  status(
+   "تعذر استخراج النص. حاول صورة أوضح أو أصغر.",
+   "error"
+  );
+
+ }finally{
+
+  $("extract").disabled=false;
+
+ }
+
 });
-$('clearBtn').addEventListener('click',()=>{
-  selectedFile=null;$('imageInput').value='';$('preview').removeAttribute('src');$('preview').style.display='none';
-  $('sourceText').value='';$('translatedText').value='';$('extractBtn').disabled=true;$('progress').style.display='none';
-  setStatus('ocrStatus','تم مسح الصورة والنص.');setStatus('translateStatus','الترجمة تحتاج إلى اتصال بالإنترنت وخدمة ترجمة متاحة.');
+
+$("clear").addEventListener("click",function(){
+
+ file=null;
+
+ $("imageInput").value="";
+ $("preview").removeAttribute("src");
+ $("preview").style.display="none";
+
+ $("text").value="";
+ $("translated").value="";
+
+ $("extract").disabled=true;
+
+ $("progress").style.display="none";
+
+ status("تم مسح الصورة والنص.");
+
+ translationStatus("اختر النص واللغة لبدء الترجمة.");
+
 });
-$('copyBtn').addEventListener('click',async()=>{const t=$('sourceText').value;if(!t){setStatus('ocrStatus','لا يوجد نص لنسخه.','error');return;}try{await navigator.clipboard.writeText(t);setStatus('ocrStatus','تم نسخ النص إلى الحافظة.','ok')}catch{ $('sourceText').select();document.execCommand('copy');setStatus('ocrStatus','تم طلب نسخ النص.','ok')}});
-$('txtBtn').addEventListener('click',()=>{if($('sourceText').value)downloadText('textsnap-extracted.txt',$('sourceText').value);else setStatus('ocrStatus','استخرج نصًا أولًا.','error')});
-$('pdfBtn').addEventListener('click',()=>{
-  const text=$('sourceText').value;if(!text){setStatus('ocrStatus','لا يوجد نص لحفظه.','error');return;}
-  const w=window.open('','_blank');if(!w){setStatus('ocrStatus','اسمح بفتح نافذة الطباعة لحفظ PDF.','error');return;}
-  const safe=text.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  w.document.write(`<!doctype html><html lang="ar" dir="auto"><head><meta charset="utf-8"><title>النص المستخرج</title><style>body{font:16px/1.9 Arial,sans-serif;margin:28px;white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body>${safe}</body></html>`);
-  w.document.close();w.focus();setTimeout(()=>w.print(),350);
+
+async function copyText(text){
+
+ if(!text){
+  status("لا يوجد نص لنسخه.","error");
+  return;
+ }
+
+ try{
+
+  await navigator.clipboard.writeText(text);
+
+  status("تم نسخ النص بنجاح.","success");
+
+ }catch(e){
+
+  status("تعذر النسخ. حدد النص وانسخه يدويًا.","error");
+
+ }
+
+}
+
+$("copy").addEventListener("click",function(){
+ copyText($("text").value);
 });
-$('translateBtn').addEventListener('click',async()=>{
-  const q=$('sourceText').value.trim();if(!q){setStatus('translateStatus','أدخل النص أو استخرجه أولًا.','error');return;}
-  const url=$('apiUrl').value.trim();if(!url){setStatus('translateStatus','أدخل عنوان خدمة الترجمة.','error');return;}
-  $('translateBtn').disabled=true;setStatus('translateStatus','جارٍ إرسال النص للترجمة...');
-  try{
-    const body={q,source:'auto',target:$('targetLang').value,format:'text'};
-    const key=$('apiKey').value.trim();if(key)body.api_key=key;
-    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!res.ok)throw new Error(`خدمة الترجمة أعادت الخطأ ${res.status}. قد تحتاج إلى مفتاح API أو خادم آخر.`);
-    const data=await res.json();if(!data.translatedText)throw new Error(data.error||'لم تُرجع الخدمة ترجمة.');
-    $('translatedText').value=data.translatedText;setStatus('translateStatus','اكتملت الترجمة. راجعها قبل الاستخدام.','ok');
-  }catch(err){setStatus('translateStatus','تعذرت الترجمة: '+err.message+' يمكنك تجربة عنوان خدمة آخر أو إعداد خادم LibreTranslate خاص.','error');}
-  finally{$('translateBtn').disabled=false;}
+
+$("copyTranslation").addEventListener("click",async function(){
+
+ const text=$("translated").value;
+
+ if(!text){
+  translationStatus("لا توجد ترجمة لنسخها.","error");
+  return;
+ }
+
+ try{
+
+  await navigator.clipboard.writeText(text);
+
+  translationStatus("تم نسخ الترجمة.","success");
+
+ }catch(e){
+
+  translationStatus("حدد النص وانسخه يدويًا.");
+
+ }
+
 });
-$('copyTranslationBtn').addEventListener('click',async()=>{const t=$('translatedText').value;if(!t)return setStatus('translateStatus','لا توجد ترجمة لنسخها.','error');try{await navigator.clipboard.writeText(t);setStatus('translateStatus','تم نسخ الترجمة.','ok')}catch{ $('translatedText').select();document.execCommand('copy');setStatus('translateStatus','تم تحديد الترجمة للنسخ.','ok')}});
-$('translationTxtBtn').addEventListener('click',()=>{if($('translatedText').value)downloadText('textsnap-translation.txt',$('translatedText').value);else setStatus('translateStatus','لا توجد ترجمة لتنزيلها.','error')});
-if('serviceWorker' in navigator && location.protocol.startsWith('http')) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+
+function downloadText(filename,text){
+
+ const blob=new Blob(
+  [text],
+  {type:"text/plain;charset=utf-8"}
+ );
+
+ const url=URL.createObjectURL(blob);
+
+ const a=document.createElement("a");
+
+ a.href=url;
+ a.download=filename;
+
+ document.body.appendChild(a);
+
+ a.click();
+
+ a.remove();
+
+ URL.revokeObjectURL(url);
+
+}
+
+$("download").addEventListener("click",function(){
+
+ const text=$("text").value;
+
+ if(!text){
+  status("لا يوجد نص لتنزيله.","error");
+  return;
+ }
+
+ downloadText("textsnap-text.txt",text);
+
+});
+
+$("downloadTranslation").addEventListener("click",function(){
+
+ const text=$("translated").value;
+
+ if(!text){
+  translationStatus("لا توجد ترجمة لتنزيلها.","error");
+  return;
+ }
+
+ downloadText("textsnap-translation.txt",text);
+
+});
+
+$("translate").addEventListener("click",async function(){
+
+ const text=$("text").value.trim();
+
+ if(!text){
+  translationStatus("استخرج النص أولًا.","error");
+  return;
+ }
+
+ translationStatus(
+  "الترجمة تحتاج إلى خدمة ترجمة متاحة. لم يتم إعداد خادم الترجمة بعد.",
+  "error"
+ );
+
+});
+
 </script>
+
 </body>
 </html>
