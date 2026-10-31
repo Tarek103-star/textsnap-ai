@@ -1,0 +1,22 @@
+{
+  "id": "./",
+  "name": "TextSnap AI - استخراج النص والترجمة",
+  "short_name": "TextSnap AI",
+  "description": "استخرج النصوص من الصور وحررها وترجمها.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6fd",
+  "theme_color": "#153fe0",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
