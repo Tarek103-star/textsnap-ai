@@ -1,4 +1,3 @@
-
 const CACHE = "textsnap-ai-v6";
 
 const SHELL = [
