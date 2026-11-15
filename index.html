@@ -6,8 +6,17 @@
 <meta name="theme-color" content="#102a56">
 <title>TextSnap AI V8 — Image to Text</title>
 <meta name="description" content="TextSnap AI extracts text from images, supports multiple languages, editing, translation and downloads.">
-
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
+<link rel="apple-touch-icon" href="./assets/icon-192.png">
 <style>
+  .brand-logo{
+  display:block;
+  width:220px;
+  max-width:55vw;
+  height:auto;
+  object-fit:contain;
+}
 :root{
   --navy:#102a56;--blue:#3268f5;--cyan:#54d5e8;
   --ink:#17233b;--muted:#71809a;--bg:#f3f6fc;
@@ -160,9 +169,13 @@ footer{text-align:center;padding:25px;color:var(--muted);font-size:12px}
 <header class="hero">
   <div class="topbar">
     <div>
-      <div class="brand">TextSnap <span>AI</span></div>
-      <div class="tagline">SMART IMAGE TO TEXT</div>
-    </div>
+      <div>
+  <img
+    class="brand-logo"
+    src="./assets/logo-horizontal.png"
+    alt="TextSnap AI - Your Images. Your Words."
+  >
+</div>
     <button class="lang-switch" id="uiLanguage">العربية / English / Français</button>
   </div>
 
