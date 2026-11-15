@@ -85,6 +85,9 @@ h1{font-size:clamp(30px,5vw,52px);line-height:1.2;margin:13px 0}
 .light{background:#fff;color:var(--navy)}
 .outline{background:transparent;border:1px solid var(--line);color:var(--ink)}
 .dark-outline{background:#ffffff15;border:1px solid #ffffff70;color:#fff}
+.install-btn{background:linear-gradient(100deg,#54d5e8,#3268f5);color:#fff;box-shadow:0 8px 22px #06173544}
+.install-help{display:none;margin:12px 0 0;padding:10px 13px;border:1px solid #ffffff55;border-radius:12px;background:#ffffff15;color:#fff;font-size:13px;line-height:1.7;max-width:560px}
+.install-help.show{display:block}
 .hero-art{
   min-height:230px;border:1px solid #ffffff35;border-radius:25px;
   background:linear-gradient(145deg,#ffffff20,#ffffff08);
@@ -337,7 +340,9 @@ body {
       <div class="hero-actions">
         <button class="btn light" id="startBtn">ابدأ استخراج النص</button>
         <button class="btn dark-outline" id="examplesBtn">شاهد الأمثلة</button>
+        <button class="btn install-btn" id="installAppBtn" type="button">تثبيت التطبيق</button>
       </div>
+      <p class="install-help" id="installHelp" role="status" aria-live="polite"></p>
     </div>
     <div class="hero-art">
       <div class="paper">
@@ -561,7 +566,7 @@ const TRANSLATION_LANGS = [
 ========================= */
 const UI = {
  ar:{
-  privacyLabel:"سياسة الخصوصية",title:"حوّل صورك إلى نص بسهولة وذكاء",desc:"استخرج النصوص من الصور، حرّرها، انسخها، ترجمها أو نزّلها. يدعم التطبيق مجموعة واسعة من لغات العالم.",
+  privacyLabel:"سياسة الخصوصية",installApp:"تثبيت التطبيق",installHelp:"لتثبيت التطبيق، افتح قائمة المتصفح واختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».",title:"حوّل صورك إلى نص بسهولة وذكاء",desc:"استخرج النصوص من الصور، حرّرها، انسخها، ترجمها أو نزّلها. يدعم التطبيق مجموعة واسعة من لغات العالم.",
   start:"ابدأ استخراج النص",examples:"شاهد الأمثلة",workspace:"مساحة العمل",
   upload:"① إضافة صورة",uploadSub:"اختر صورة من هاتفك أو التقط صورة بالكاميرا.",
   drop:"اضغط لاختيار صورة",hint:"أو اسحب الصورة وأفلتها هنا",
@@ -587,7 +592,7 @@ const UI = {
   mode11:"نص متفرق",mode4:"أعمدة نصية",mode7:"سطر واحد"
  },
  en:{
-  privacyLabel:"Privacy Policy",title:"Turn images into text with ease",desc:"Extract text from images, edit, copy, translate or download. Supports a wide range of OCR languages.",
+  privacyLabel:"Privacy Policy",installApp:"Install app",installHelp:"To install, open your browser menu and choose “Install app” or “Add to Home screen”.",title:"Turn images into text with ease",desc:"Extract text from images, edit, copy, translate or download. Supports a wide range of OCR languages.",
   start:"Start extracting",examples:"See examples",workspace:"Workspace",
   upload:"① Add an image",uploadSub:"Choose an image from your device or use your camera.",
   drop:"Click to choose an image",hint:"Or drag and drop an image here",
@@ -613,7 +618,7 @@ const UI = {
   mode11:"Sparse text",mode4:"Columns of text",mode7:"Single text line"
  },
  fr:{
-  privacyLabel:"Politique de confidentialité",title:"Transformez vos images en texte facilement",desc:"Extrayez le texte des images, modifiez-le, copiez-le, traduisez-le ou téléchargez-le. Plusieurs langues OCR sont disponibles.",
+  privacyLabel:"Politique de confidentialité",installApp:"Installer l’application",installHelp:"Pour installer l’application, ouvrez le menu du navigateur et choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».",title:"Transformez vos images en texte facilement",desc:"Extrayez le texte des images, modifiez-le, copiez-le, traduisez-le ou téléchargez-le. Plusieurs langues OCR sont disponibles.",
   start:"Commencer",examples:"Voir les exemples",workspace:"Espace de travail",
   upload:"① Ajouter une image",uploadSub:"Choisissez une image ou utilisez votre appareil photo.",
   drop:"Cliquez pour choisir une image",hint:"Ou glissez-déposez une image ici",
@@ -674,6 +679,8 @@ function applyUI(){
  $("mode").options[5].text=t.mode7;
  $("uiLanguage").textContent=uiLang==="ar"?"العربية / English / Français":uiLang==="en"?"English / Français / العربية":"Français / العربية / English";
  $("privacyLink").href="./privacy.html?lang="+uiLang;
+ $("installAppBtn").textContent=t.installApp;
+ $("installHelp").textContent=t.installHelp;
 }
 function cycleUI(){uiLang=uiLang==="ar"?"en":uiLang==="en"?"fr":"ar";applyUI()}
 $("uiLanguage").addEventListener("click",cycleUI);
@@ -1180,6 +1187,37 @@ if ("serviceWorker" in navigator) {
       });
   });
 }
+</script>
+<script>
+/* Smart PWA installation: use the browser's official prompt when available. */
+let deferredInstallPrompt = null;
+const installButton = document.getElementById("installAppBtn");
+const installHelp = document.getElementById("installHelp");
+const appIsStandalone = () => (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+if (appIsStandalone()) installButton.classList.add("hidden");
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  installButton.classList.remove("hidden");
+});
+installButton.addEventListener("click", async () => {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (choice.outcome === "accepted") {
+      installHelp.classList.remove("show");
+    }
+  } else {
+    installHelp.textContent = UI[uiLang].installHelp;
+    installHelp.classList.toggle("show");
+  }
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  installButton.classList.add("hidden");
+  installHelp.classList.remove("show");
+});
 </script>
 </body>
       </html>
