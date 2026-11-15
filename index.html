@@ -1134,5 +1134,20 @@ window.addEventListener("beforeunload",()=>{
  if(imageURL)URL.revokeObjectURL(imageURL);
 });
 </script>
+
+<script>
+/* Register the PWA Service Worker on supported browsers. */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js", { scope: "./" })
+      .then(registration => {
+        console.info("TextSnap AI: Service Worker registered.", registration.scope);
+      })
+      .catch(error => {
+        console.error("TextSnap AI: Service Worker registration failed.", error);
+      });
+  });
+}
+</script>
 </body>
       </html>
