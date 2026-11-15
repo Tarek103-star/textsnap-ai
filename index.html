@@ -462,7 +462,7 @@ body {
   </section>
 </main>
 
-<footer>TextSnap AI V8 · OCR processing in your browser · Images are not uploaded by this page to an OCR server.<br><a href="./privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a></footer>
+<footer>TextSnap AI V8 · OCR processing in your browser · Images are not uploaded by this page to an OCR server.<br><a id="privacyLink" href="./privacy.html?lang=ar" target="_blank" rel="noopener">سياسة الخصوصية</a></footer>
 
 <div class="crop-modal" id="cropModal">
   <div class="crop-dialog">
@@ -561,7 +561,7 @@ const TRANSLATION_LANGS = [
 ========================= */
 const UI = {
  ar:{
-  title:"حوّل صورك إلى نص بسهولة وذكاء",desc:"استخرج النصوص من الصور، حرّرها، انسخها، ترجمها أو نزّلها. يدعم التطبيق مجموعة واسعة من لغات العالم.",
+  privacyLabel:"سياسة الخصوصية",title:"حوّل صورك إلى نص بسهولة وذكاء",desc:"استخرج النصوص من الصور، حرّرها، انسخها، ترجمها أو نزّلها. يدعم التطبيق مجموعة واسعة من لغات العالم.",
   start:"ابدأ استخراج النص",examples:"شاهد الأمثلة",workspace:"مساحة العمل",
   upload:"① إضافة صورة",uploadSub:"اختر صورة من هاتفك أو التقط صورة بالكاميرا.",
   drop:"اضغط لاختيار صورة",hint:"أو اسحب الصورة وأفلتها هنا",
@@ -587,7 +587,7 @@ const UI = {
   mode11:"نص متفرق",mode4:"أعمدة نصية",mode7:"سطر واحد"
  },
  en:{
-  title:"Turn images into text with ease",desc:"Extract text from images, edit, copy, translate or download. Supports a wide range of OCR languages.",
+  privacyLabel:"Privacy Policy",title:"Turn images into text with ease",desc:"Extract text from images, edit, copy, translate or download. Supports a wide range of OCR languages.",
   start:"Start extracting",examples:"See examples",workspace:"Workspace",
   upload:"① Add an image",uploadSub:"Choose an image from your device or use your camera.",
   drop:"Click to choose an image",hint:"Or drag and drop an image here",
@@ -613,7 +613,7 @@ const UI = {
   mode11:"Sparse text",mode4:"Columns of text",mode7:"Single text line"
  },
  fr:{
-  title:"Transformez vos images en texte facilement",desc:"Extrayez le texte des images, modifiez-le, copiez-le, traduisez-le ou téléchargez-le. Plusieurs langues OCR sont disponibles.",
+  privacyLabel:"Politique de confidentialité",title:"Transformez vos images en texte facilement",desc:"Extrayez le texte des images, modifiez-le, copiez-le, traduisez-le ou téléchargez-le. Plusieurs langues OCR sont disponibles.",
   start:"Commencer",examples:"Voir les exemples",workspace:"Espace de travail",
   upload:"① Ajouter une image",uploadSub:"Choisissez une image ou utilisez votre appareil photo.",
   drop:"Cliquez pour choisir une image",hint:"Ou glissez-déposez une image ici",
@@ -659,7 +659,7 @@ function applyUI(){
   copy:"copy",download:"download",print:"print",translationHeading:"translation",
   sourceLangLabel:"sourceLang",targetLabel:"target",translate:"translate",copyTranslation:"copyTr",
   downloadTranslation:"downloadTr",translationNote:"note",
-  examplesHeading:"examplesTitle",cropHeading:"crop",cropHelp:"cropHelp",
+  examplesHeading:"examplesTitle",cropHeading:"crop",cropHelp:"cropHelp",privacyLink:"privacyLabel",
   applyCrop:"cropApply",cancelCrop2:"cancel"
  };
  Object.keys(map).forEach(id=>setText(id,t[map[id]]));
