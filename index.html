@@ -673,6 +673,7 @@ function applyUI(){
  $("mode").options[4].text=t.mode4;
  $("mode").options[5].text=t.mode7;
  $("uiLanguage").textContent=uiLang==="ar"?"العربية / English / Français":uiLang==="en"?"English / Français / العربية":"Français / العربية / English";
+ $("privacyLink").href="./privacy.html?lang="+uiLang;
 }
 function cycleUI(){uiLang=uiLang==="ar"?"en":uiLang==="en"?"fr":"ar";applyUI()}
 $("uiLanguage").addEventListener("click",cycleUI);
