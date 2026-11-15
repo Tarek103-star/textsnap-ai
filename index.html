@@ -6,6 +6,27 @@
 <meta name="theme-color" content="#102a56">
 <title>TextSnap AI V8 — Image to Text</title>
 <meta name="description" content="TextSnap AI extracts text from images, supports multiple languages, editing, translation and downloads.">
+
+<!-- Google tag (gtag.js) - Google Analytics 4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LBFBDQQYG0"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-LBFBDQQYG0');
+
+  // Track standalone launches as a usage signal, not as a unique install count.
+  if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+    gtag('event', 'app_open_standalone');
+  } else if (window.navigator.standalone === true) {
+    gtag('event', 'app_open_standalone');
+  }
+
+  // Supported mainly by Chromium-based browsers; not a universal install counter.
+  window.addEventListener('appinstalled', function () {
+    gtag('event', 'app_installed');
+  });
+</script>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
 <link rel="apple-touch-icon" href="./assets/icon-192.png">
@@ -947,6 +968,12 @@ $("extract").onclick=async()=>{
   $("source").value=finalText;
   setProgress(100);
   setStatus(finalText?UI[uiLang].done:UI[uiLang].noText);
+  if (finalText) {
+   gtag('event', 'ocr_success', {
+    ocr_language: lang,
+    recognition_mode: mode
+   });
+  }
  }catch(err){
   console.error("OCR extraction failed:",err);
   if(worker){try{await worker.terminate()}catch(e){} worker=null; workerLang="";}
@@ -1119,6 +1146,10 @@ $("translate").onclick = async () => {
   $("translated").value = results.join("");
   if (!$("translated").value.trim()) throw new Error("Empty translation");
   $("trStatus").textContent = UI[uiLang].translatedOK;
+  gtag('event', 'translation_success', {
+   source_language: sourceLang,
+   target_language: targetLang
+  });
  } catch (error) {
   console.error("TextSnap translation failed:", error);
   $("trStatus").textContent =
