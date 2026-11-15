@@ -88,6 +88,15 @@ h1{font-size:clamp(30px,5vw,52px);line-height:1.2;margin:13px 0}
 .install-btn{background:linear-gradient(100deg,#54d5e8,#3268f5);color:#fff;box-shadow:0 8px 22px #06173544}
 .install-help{display:none;margin:12px 0 0;padding:10px 13px;border:1px solid #ffffff55;border-radius:12px;background:#ffffff15;color:#fff;font-size:13px;line-height:1.7;max-width:560px}
 .install-help.show{display:block}
+.install-fab{position:fixed;z-index:40;inset-inline-end:18px;bottom:calc(18px + env(safe-area-inset-bottom));border:0;border-radius:999px;padding:13px 18px;background:linear-gradient(110deg,#3268f5,#164b91);color:#fff;font-weight:850;box-shadow:0 8px 26px #102a5655;display:flex;align-items:center;gap:8px}
+.install-fab[hidden]{display:none!important}
+.install-popup{position:fixed;z-index:41;inset-inline-end:18px;bottom:calc(82px + env(safe-area-inset-bottom));width:min(340px,calc(100vw - 36px));padding:17px 18px;background:#fff;color:#17233b;border:1px solid #dce6f5;border-radius:18px;box-shadow:0 16px 48px #06173533;display:none}
+.install-popup.show{display:block}
+.install-popup h3{margin:0 28px 7px 0;color:#102a56;font-size:16px}
+.install-popup p{margin:0 0 12px;color:#5d6c84;font-size:13px;line-height:1.65}
+.install-popup .popup-actions{display:flex;align-items:center;gap:8px}
+.install-popup .popup-install{border:0;border-radius:10px;padding:10px 14px;background:#3268f5;color:#fff;font-weight:800;flex:1}
+.install-popup .popup-close{position:absolute;inset-inline-end:10px;top:9px;border:0;background:#eef2f8;color:#52627c;border-radius:50%;width:28px;height:28px;font-size:18px}
 .hero-art{
   min-height:230px;border:1px solid #ffffff35;border-radius:25px;
   background:linear-gradient(145deg,#ffffff20,#ffffff08);
@@ -469,6 +478,14 @@ body {
 
 <footer>TextSnap AI V8 · OCR processing in your browser · Images are not uploaded by this page to an OCR server.<br><a id="privacyLink" href="./privacy.html?lang=ar" target="_blank" rel="noopener">سياسة الخصوصية</a></footer>
 
+<button class="install-fab" id="installFab" type="button" hidden>⬇ <span id="installFabText">تثبيت التطبيق</span></button>
+<div class="install-popup" id="installPopup" role="dialog" aria-live="polite" aria-labelledby="installPopupTitle">
+  <button class="popup-close" id="closeInstallPopup" type="button" aria-label="Close">×</button>
+  <h3 id="installPopupTitle">ثبّت TextSnap AI على هاتفك</h3>
+  <p id="installPopupText">اجعل الوصول إلى التطبيق أسرع من الشاشة الرئيسية.</p>
+  <div class="popup-actions"><button class="popup-install" id="popupInstallBtn" type="button">تثبيت الآن</button></div>
+</div>
+
 <div class="crop-modal" id="cropModal">
   <div class="crop-dialog">
     <div class="crop-head">
@@ -566,7 +583,7 @@ const TRANSLATION_LANGS = [
 ========================= */
 const UI = {
  ar:{
-  privacyLabel:"سياسة الخصوصية",installApp:"تثبيت التطبيق",installHelp:"لتثبيت التطبيق، افتح قائمة المتصفح واختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».",title:"حوّل صورك إلى نص بسهولة وذكاء",desc:"استخرج النصوص من الصور، حرّرها، انسخها، ترجمها أو نزّلها. يدعم التطبيق مجموعة واسعة من لغات العالم.",
+  privacyLabel:"سياسة الخصوصية",installApp:"تثبيت التطبيق",installNudgeTitle:"ثبّت TextSnap AI على هاتفك",installNudgeText:"اجعل الوصول إلى استخراج النصوص والترجمة أسرع، وافتح التطبيق مباشرة من شاشتك الرئيسية.",installNudgeAction:"تثبيت الآن",installHelp:"لتثبيت التطبيق، افتح قائمة المتصفح واختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».",title:"حوّل صورك إلى نص بسهولة وذكاء",desc:"استخرج النصوص من الصور، حرّرها، انسخها، ترجمها أو نزّلها. يدعم التطبيق مجموعة واسعة من لغات العالم.",
   start:"ابدأ استخراج النص",examples:"شاهد الأمثلة",workspace:"مساحة العمل",
   upload:"① إضافة صورة",uploadSub:"اختر صورة من هاتفك أو التقط صورة بالكاميرا.",
   drop:"اضغط لاختيار صورة",hint:"أو اسحب الصورة وأفلتها هنا",
@@ -592,7 +609,7 @@ const UI = {
   mode11:"نص متفرق",mode4:"أعمدة نصية",mode7:"سطر واحد"
  },
  en:{
-  privacyLabel:"Privacy Policy",installApp:"Install app",installHelp:"To install, open your browser menu and choose “Install app” or “Add to Home screen”.",title:"Turn images into text with ease",desc:"Extract text from images, edit, copy, translate or download. Supports a wide range of OCR languages.",
+  privacyLabel:"Privacy Policy",installApp:"Install app",installNudgeTitle:"Install TextSnap AI on your phone",installNudgeText:"Get quicker access to image-to-text extraction and translation from your home screen.",installNudgeAction:"Install now",installHelp:"To install, open your browser menu and choose “Install app” or “Add to Home screen”.",title:"Turn images into text with ease",desc:"Extract text from images, edit, copy, translate or download. Supports a wide range of OCR languages.",
   start:"Start extracting",examples:"See examples",workspace:"Workspace",
   upload:"① Add an image",uploadSub:"Choose an image from your device or use your camera.",
   drop:"Click to choose an image",hint:"Or drag and drop an image here",
@@ -618,7 +635,7 @@ const UI = {
   mode11:"Sparse text",mode4:"Columns of text",mode7:"Single text line"
  },
  fr:{
-  privacyLabel:"Politique de confidentialité",installApp:"Installer l’application",installHelp:"Pour installer l’application, ouvrez le menu du navigateur et choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».",title:"Transformez vos images en texte facilement",desc:"Extrayez le texte des images, modifiez-le, copiez-le, traduisez-le ou téléchargez-le. Plusieurs langues OCR sont disponibles.",
+  privacyLabel:"Politique de confidentialité",installApp:"Installer l’application",installNudgeTitle:"Installez TextSnap AI sur votre téléphone",installNudgeText:"Accédez plus rapidement à l’extraction de texte et à la traduction depuis votre écran d’accueil.",installNudgeAction:"Installer",installHelp:"Pour installer l’application, ouvrez le menu du navigateur et choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».",title:"Transformez vos images en texte facilement",desc:"Extrayez le texte des images, modifiez-le, copiez-le, traduisez-le ou téléchargez-le. Plusieurs langues OCR sont disponibles.",
   start:"Commencer",examples:"Voir les exemples",workspace:"Espace de travail",
   upload:"① Ajouter une image",uploadSub:"Choisissez une image ou utilisez votre appareil photo.",
   drop:"Cliquez pour choisir une image",hint:"Ou glissez-déposez une image ici",
@@ -681,6 +698,10 @@ function applyUI(){
  $("privacyLink").href="./privacy.html?lang="+uiLang;
  $("installAppBtn").textContent=t.installApp;
  $("installHelp").textContent=t.installHelp;
+ $("installFabText").textContent=t.installApp;
+ $("installPopupTitle").textContent=t.installNudgeTitle;
+ $("installPopupText").textContent=t.installNudgeText;
+ $("popupInstallBtn").textContent=t.installNudgeAction;
 }
 function cycleUI(){uiLang=uiLang==="ar"?"en":uiLang==="en"?"fr":"ar";applyUI()}
 $("uiLanguage").addEventListener("click",cycleUI);
@@ -730,6 +751,7 @@ function loadFile(file){
   return;
  }
  selectedFile=file;
+ if (typeof scheduleInstallNudge === "function") scheduleInstallNudge();
  if(imageURL)URL.revokeObjectURL(imageURL);
  imageURL=URL.createObjectURL(file);
  $("preview").src=imageURL;
@@ -1193,14 +1215,22 @@ if ("serviceWorker" in navigator) {
 let deferredInstallPrompt = null;
 const installButton = document.getElementById("installAppBtn");
 const installHelp = document.getElementById("installHelp");
+const installFab = document.getElementById("installFab");
+const installPopup = document.getElementById("installPopup");
+let installNudgeScheduled = false;
 const appIsStandalone = () => (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
-if (appIsStandalone()) installButton.classList.add("hidden");
+if (appIsStandalone()) {
+  installButton.classList.add("hidden");
+  installFab.hidden = true;
+} else {
+  installFab.hidden = false;
+}
 window.addEventListener("beforeinstallprompt", event => {
   event.preventDefault();
   deferredInstallPrompt = event;
   installButton.classList.remove("hidden");
 });
-installButton.addEventListener("click", async () => {
+async function requestAppInstall() {
   if (deferredInstallPrompt) {
     deferredInstallPrompt.prompt();
     const choice = await deferredInstallPrompt.userChoice;
@@ -1212,10 +1242,26 @@ installButton.addEventListener("click", async () => {
     installHelp.textContent = UI[uiLang].installHelp;
     installHelp.classList.toggle("show");
   }
+}
+installButton.addEventListener("click", requestAppInstall);
+installFab.addEventListener("click", requestAppInstall);
+document.getElementById("popupInstallBtn").addEventListener("click", () => {
+  installPopup.classList.remove("show");
+  requestAppInstall();
 });
+document.getElementById("closeInstallPopup").addEventListener("click", () => installPopup.classList.remove("show"));
+function scheduleInstallNudge() {
+  if (installNudgeScheduled || appIsStandalone()) return;
+  installNudgeScheduled = true;
+  window.setTimeout(() => {
+    if (!appIsStandalone()) installPopup.classList.add("show");
+  }, 9000);
+}
 window.addEventListener("appinstalled", () => {
   deferredInstallPrompt = null;
   installButton.classList.add("hidden");
+  installFab.hidden = true;
+  installPopup.classList.remove("show");
   installHelp.classList.remove("show");
 });
 </script>
