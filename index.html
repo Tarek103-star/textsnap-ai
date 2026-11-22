@@ -168,6 +168,10 @@ textarea:focus,select:focus{border-color:#8aa9ff;box-shadow:0 0 0 3px #3268f51a}
   overflow:hidden;touch-action:none;user-select:none
 }
 .crop-stage img{display:block;max-width:100%;max-height:55vh;width:auto;height:auto}
+.perspective-layer{position:absolute;inset:0;display:none;pointer-events:none;z-index:3}
+.perspective-layer svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.perspective-layer polygon{fill:#35d8f222;stroke:#35d8f2;stroke-width:2;vector-effect:non-scaling-stroke}
+.perspective-handle{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border:3px solid #fff;border-radius:50%;background:#3268f5;box-shadow:0 1px 8px #07152d99;pointer-events:auto;touch-action:none;z-index:4}
 .crop-box{
   position:absolute;left:10%;top:10%;width:80%;height:80%;
   border:2px solid #35d8f2;background:#35d8f222;cursor:move;
@@ -493,8 +497,16 @@ body {
       <button class="btn outline" id="cancelCrop">✕</button>
     </div>
     <p class="sub" id="cropHelp">حرّك الإطار لتحديد الجزء المطلوب، واسحب الزوايا لتغيير حجمه.</p>
+    <div class="actions" style="margin-top:10px"><button class="btn outline" id="perspectiveModeBtn" type="button">تصحيح منظور الشاشة</button></div>
     <div class="crop-stage" id="cropStage">
       <img id="cropImage" alt="Crop image">
+      <div class="perspective-layer" id="perspectiveLayer">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon id="perspectivePolygon" points="5,5 95,5 95,95 5,95"></polygon></svg>
+        <button class="perspective-handle" type="button" data-corner="0" aria-label="Top left" style="left:5%;top:5%"></button>
+        <button class="perspective-handle" type="button" data-corner="1" aria-label="Top right" style="left:95%;top:5%"></button>
+        <button class="perspective-handle" type="button" data-corner="2" aria-label="Bottom right" style="left:95%;top:95%"></button>
+        <button class="perspective-handle" type="button" data-corner="3" aria-label="Bottom left" style="left:5%;top:95%"></button>
+      </div>
       <div class="crop-box" id="cropBox">
         <i class="handle tl" data-handle="tl"></i>
         <i class="handle tr" data-handle="tr"></i>
@@ -504,6 +516,7 @@ body {
     </div>
     <div class="actions">
       <button class="btn primary" id="applyCrop">تطبيق القص</button>
+      <button class="btn primary" id="applyPerspective" type="button" hidden>تطبيق تصحيح المنظور</button>
       <button class="btn outline" id="cancelCrop2">إلغاء</button>
     </div>
   </div>
@@ -664,6 +677,7 @@ const UI = {
 
 let uiLang="ar", selectedFile=null, imageURL=null, worker=null, workerLang="", tesseractLoadPromise=null;
 let busy=false, cropRect={x:10,y:10,w:80,h:80}, cropAction=null, cropStart=null;
+let perspectiveMode=false, perspectiveCorners=[{x:5,y:5},{x:95,y:5},{x:95,y:95},{x:5,y:95}], perspectiveDrag=null, perspectiveSourceFile=null;
 const $=id=>document.getElementById(id);
 
 function setText(id,value){const el=$(id);if(el)el.textContent=value}
@@ -750,7 +764,7 @@ function loadFile(file){
   setStatus(uiLang==="ar"?"حجم الصورة كبير جداً. اختر صورة أقل من 25 ميغابايت.":"Image is too large. Choose an image under 25 MB.");
   return;
  }
- selectedFile=file;
+ selectedFile=file;perspectiveSourceFile=null;
  if (typeof scheduleInstallNudge === "function") scheduleInstallNudge();
  if(imageURL)URL.revokeObjectURL(imageURL);
  imageURL=URL.createObjectURL(file);
@@ -789,14 +803,18 @@ function showCrop(){
  if(!imageURL)return;
  $("cropImage").src=imageURL;
  cropRect={x:10,y:10,w:80,h:80};
- $("cropModal").classList.add("show");
- requestAnimationFrame(drawCropBox);
+ perspectiveCorners=[{x:5,y:5},{x:95,y:5},{x:95,y:95},{x:5,y:95}];setPerspectiveMode(false);
+ $("cropModal").classList.add("show");requestAnimationFrame(()=>{drawCropBox();drawPerspectiveCorners()});
 }
 function drawCropBox(){
  const b=$("cropBox");
  b.style.left=cropRect.x+"%";b.style.top=cropRect.y+"%";
  b.style.width=cropRect.w+"%";b.style.height=cropRect.h+"%";
 }
+function setPerspectiveMode(enabled){perspectiveMode=enabled;$("cropBox").style.display=enabled?"none":"block";$("perspectiveLayer").style.display=enabled?"block":"none";$("applyCrop").hidden=enabled;$("applyPerspective").hidden=!enabled;$("perspectiveModeBtn").textContent=enabled?"العودة إلى القص المستطيل":"تصحيح منظور الشاشة"}
+function drawPerspectiveCorners(){const handles=$("perspectiveLayer").querySelectorAll("[data-corner]");handles.forEach((el,i)=>{el.style.left=perspectiveCorners[i].x+"%";el.style.top=perspectiveCorners[i].y+"%"});$("perspectivePolygon").setAttribute("points",perspectiveCorners.map(p=>p.x+","+p.y).join(" "))}
+$("perspectiveModeBtn").onclick=()=>setPerspectiveMode(!perspectiveMode);
+$("perspectiveLayer").querySelectorAll("[data-corner]").forEach(handle=>{handle.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();perspectiveDrag=Number(handle.dataset.corner);handle.setPointerCapture(e.pointerId)});handle.addEventListener("pointermove",e=>{if(perspectiveDrag===null||perspectiveDrag!==Number(handle.dataset.corner))return;const r=$("cropStage").getBoundingClientRect();perspectiveCorners[perspectiveDrag]={x:Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)),y:Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100))};drawPerspectiveCorners()});const stop=()=>{perspectiveDrag=null};handle.addEventListener("pointerup",stop);handle.addEventListener("pointercancel",stop)});
 $("openCrop").onclick=showCrop;
 $("cancelCrop").onclick=$("cancelCrop2").onclick=()=>$("cropModal").classList.remove("show");
 
@@ -830,6 +848,9 @@ function stopCrop(){cropAction=null;cropStart=null}
 $("cropBox").addEventListener("pointerup",stopCrop);
 $("cropBox").addEventListener("pointercancel",stopCrop);
 
+function solvePerspectiveMatrix(src,dst){const A=[],B=[];for(let i=0;i<4;i++){const x=dst[i].x,y=dst[i].y,u=src[i].x,v=src[i].y;A.push([x,y,1,0,0,0,-u*x,-u*y]);B.push(u);A.push([0,0,0,x,y,1,-v*x,-v*y]);B.push(v)}for(let i=0;i<8;i++){let p=i;for(let r=i+1;r<8;r++)if(Math.abs(A[r][i])>Math.abs(A[p][i]))p=r;if(Math.abs(A[p][i])<1e-10)throw Error("Invalid corners");[A[i],A[p]]=[A[p],A[i]];[B[i],B[p]]=[B[p],B[i]];const q=A[i][i];for(let j=i;j<8;j++)A[i][j]/=q;B[i]/=q;for(let r=0;r<8;r++)if(r!==i){const k=A[r][i];for(let j=i;j<8;j++)A[r][j]-=k*A[i][j];B[r]-=k*B[i]}}return B}
+async function createPerspectiveFile(){const img=$("cropImage"),nw=img.naturalWidth,nh=img.naturalHeight,src=perspectiveCorners.map(p=>({x:p.x/100*nw,y:p.y/100*nh})),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),W=Math.max(1,Math.min(2600,Math.round(Math.max(dist(src[0],src[1]),dist(src[3],src[2]))))),H=Math.max(1,Math.min(2600,Math.round(Math.max(dist(src[0],src[3]),dist(src[1],src[2]))))),coef=solvePerspectiveMatrix(src,[{x:0,y:0},{x:W,y:0},{x:W,y:H},{x:0,y:H}]),input=document.createElement("canvas");input.width=nw;input.height=nh;const ictx=input.getContext("2d",{willReadFrequently:true});ictx.drawImage(img,0,0);const pixels=ictx.getImageData(0,0,nw,nh),output=document.createElement("canvas");output.width=W;output.height=H;const octx=output.getContext("2d",{willReadFrequently:true}),out=octx.createImageData(W,H),d=out.data,s=pixels.data,[a,b,c,e,f,g,h,i]=coef;for(let y=0;y<H;y++)for(let x=0;x<W;x++){const z=g*x+h*y+1,u=(a*x+b*y+c)/z,v=(e*x+f*y+i)/z,ix=Math.max(0,Math.min(nw-1,Math.round(u))),iy=Math.max(0,Math.min(nh-1,Math.round(v))),si=(iy*nw+ix)*4,di=(y*W+x)*4;d[di]=s[si];d[di+1]=s[si+1];d[di+2]=s[si+2];d[di+3]=255}octx.putImageData(out,0,0);const blob=await new Promise(resolve=>output.toBlob(resolve,"image/png"));if(!blob)throw Error("Warp failed");return new File([blob],"textsnap-perspective-corrected.png",{type:"image/png"})}
+$("applyPerspective").onclick=async()=>{try{const xs=perspectiveCorners.map(p=>p.x),ys=perspectiveCorners.map(p=>p.y);if(Math.max(...xs)-Math.min(...xs)<10||Math.max(...ys)-Math.min(...ys)<10)throw Error("Small area");const corrected=await createPerspectiveFile();perspectiveSourceFile=selectedFile;selectedFile=corrected;if(imageURL)URL.revokeObjectURL(imageURL);imageURL=URL.createObjectURL(corrected);$("preview").src=imageURL;$("cropModal").classList.remove("show");setStatus(uiLang==="ar"?"تم تصحيح المنظور؛ سيقارن OCR الصورة المصححة بالأصلية.":"Perspective corrected; OCR will compare corrected and original images.")}catch(e){setStatus(uiLang==="ar"?"تعذر تصحيح المنظور. تحقق من مواضع الزوايا الأربع.":"Perspective correction failed. Check the four corners.")}};
 $("applyCrop").onclick=async()=>{
  try{
   const img=$("cropImage");
@@ -903,7 +924,7 @@ function rotateCanvas(source,angle){
  ctx.translate(w/2,h/2);ctx.rotate(radians);ctx.drawImage(source,-source.width/2,-source.height/2);
  return canvas;
 }
-async function makeVariants(file){
+async function makeVariants(file,fallbackFile=null){
  const img=await loadImage(file);
  const scale=Math.min(2.2,2600/Math.max(img.width,img.height));
  const w=Math.max(1,Math.round(img.width*scale));
@@ -927,10 +948,9 @@ async function makeVariants(file){
   data.data[i]=data.data[i+1]=data.data[i+2]=adjusted;
  }
  ectx.putImageData(data,0,0);
- return [
-  {name:"original",canvas:original},
-  {name:"enhanced",canvas:enhanced}
- ];
+ const variants=[{name:fallbackFile?"perspective-corrected":"original",canvas:original},{name:"enhanced",canvas:enhanced}];
+ if(fallbackFile){const fallbackImg=await loadImage(fallbackFile),fs=Math.min(2.2,2600/Math.max(fallbackImg.width,fallbackImg.height)),fw=Math.max(1,Math.round(fallbackImg.width*fs)),fh=Math.max(1,Math.round(fallbackImg.height*fs)),fallback=document.createElement("canvas");fallback.width=fw;fallback.height=fh;const fctx=fallback.getContext("2d");fctx.fillStyle="#fff";fctx.fillRect(0,0,fw,fh);fctx.drawImage(fallbackImg,0,0,fw,fh);variants.unshift({name:"original",canvas:fallback})}
+ return variants;
 }
 
 /* =========================
@@ -983,14 +1003,17 @@ function rebuildFromWords(data,rtl){
  return cleanSpacing(output.join("\n"));
 }
 function resultScore(text,confidence){
- const s=(text||"").trim();
- if(!s)return -1000;
- const letters=(s.match(/[\p{L}\p{N}]/gu)||[]).length;
+ const s=cleanSpacing(text||"");
+ const meaningful=(s.match(/[\p{L}\p{N}]/gu)||[]).length;
+ if(meaningful<2)return -1000;
  const odd=(s.match(/[�□■]/g)||[]).length;
- const total=Math.max(1,s.length);
- const letterRatio=letters/total;
- const oneLetterWords=(s.match(/(?:^|\s)[\p{L}](?=\s|$)/gu)||[]).length;
- return confidence*.72+letterRatio*24-odd*18-oneLetterWords*1.5;
+ const letterRatio=meaningful/Math.max(1,s.length);
+ const tokens=s.split(/\s+/).filter(Boolean);
+ const oneCharTokens=tokens.filter(t=>Array.from(t).length===1&&/[\p{L}]/u.test(t)).length;
+ const punctuation=(s.match(/[.,;:!?،؛؟()[\]{}|]/g)||[]).length;
+ const plausibility=letterRatio*32-Math.min(20,oneCharTokens*2)-Math.min(12,punctuation*.6)-odd*25;
+ const lengthBonus=Math.min(8,Math.log2(meaningful+1)*1.5);
+ return confidence*.48+plausibility+lengthBonus;
 }
 async function recognize(worker,canvas,psm,rtl){
  await worker.setParameters({
@@ -1000,9 +1023,9 @@ async function recognize(worker,canvas,psm,rtl){
  const result=await worker.recognize(canvas);
  const text=rebuildFromWords(result.data,rtl);
  return {
-  text:text||result.data.text||"",
+  text:cleanSpacing(text||result.data.text||""),
   confidence:Number(result.data.confidence)||0,
-  score:resultScore(text,Number(result.data.confidence)||0)
+  score:resultScore(text||result.data.text||"",Number(result.data.confidence)||0)
  };
 }
 
@@ -1040,7 +1063,7 @@ $("extract").onclick=async()=>{
  try{
   const lang=$("language").value;
   const rtl=isArabicLang(lang);
-  const variants=await makeVariants(selectedFile);
+  const variants=await makeVariants(selectedFile,perspectiveSourceFile);
   const ocr=await getWorker(lang);
   const mode=$("mode").value;
   const modes=mode==="auto"?[6,3,11]:[Number(mode)];
@@ -1056,7 +1079,7 @@ $("extract").onclick=async()=>{
     // primary signal, but avoid allowing preprocessing to win by a tiny margin.
     if(vi===0)candidate.score+=2;
     diagnostics.push(candidate);
-    if(!best||candidate.score>best.score)best=candidate;
+    if(candidate.score>-1000&&(!best||candidate.score>best.score))best=candidate;
     setProgress(10+Math.round(done/total*85));
    }
   }
