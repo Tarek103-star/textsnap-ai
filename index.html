@@ -931,6 +931,37 @@ function rotateCanvas(source,angle){
  ctx.translate(w/2,h/2);ctx.rotate(radians);ctx.drawImage(source,-source.width/2,-source.height/2);
  return canvas;
 }
+function makeLocalContrastVariant(source,w,h){
+ // Estimate slowly changing background illumination at low resolution, then
+ // normalize each pixel against that estimate. This handles colored gradients
+ // and uneven lighting without forcing the image into hard black/white pixels.
+ const gray=document.createElement("canvas");gray.width=w;gray.height=h;
+ const gctx=gray.getContext("2d",{willReadFrequently:true});
+ const pixels=source.getContext("2d",{willReadFrequently:true}).getImageData(0,0,w,h);
+ for(let i=0;i<pixels.data.length;i+=4){
+  const value=.299*pixels.data[i]+.587*pixels.data[i+1]+.114*pixels.data[i+2];
+  pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=value;
+ }
+ gctx.putImageData(pixels,0,0);
+ const bw=Math.max(1,Math.ceil(w/32)),bh=Math.max(1,Math.ceil(h/32));
+ const small=document.createElement("canvas");small.width=bw;small.height=bh;
+ small.getContext("2d").drawImage(gray,0,0,bw,bh);
+ const background=document.createElement("canvas");background.width=w;background.height=h;
+ const bctx=background.getContext("2d",{willReadFrequently:true});
+ bctx.filter="blur("+Math.max(6,Math.round(Math.min(w,h)/55))+"px)";
+ bctx.drawImage(small,0,0,w,h);
+ bctx.filter="none";
+ const base=gctx.getImageData(0,0,w,h);
+ const bg=bctx.getImageData(0,0,w,h);
+ for(let i=0;i<base.data.length;i+=4){
+  const normalized=Math.max(0,Math.min(255,128+(base.data[i]-bg.data[i])*.85));
+  base.data[i]=base.data[i+1]=base.data[i+2]=normalized;
+ }
+ const output=document.createElement("canvas");output.width=w;output.height=h;
+ output.getContext("2d").putImageData(base,0,0);
+ return output;
+}
+
 async function makeVariants(file,fallbackFile=null){
  const img=await loadImage(file);
  const scale=Math.min(2.2,2600/Math.max(img.width,img.height));
@@ -941,10 +972,9 @@ async function makeVariants(file,fallbackFile=null){
  const ctx=original.getContext("2d",{willReadFrequently:true});
  ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);
  ctx.drawImage(img,0,0,w,h);
-
- // Keep the automatic path conservative: the previous projection-based
- // deskew and global Otsu threshold can damage photographed screens.
- // Compare only the untouched image and a mild contrast-enhanced grayscale.
+ // Keep the original intact. Compare it with mild grayscale contrast and a
+ // local-background-normalized variant; avoid hard thresholding because it
+ // can erase Arabic dots, diacritics and thin strokes.
  const enhanced=document.createElement("canvas");
  enhanced.width=w;enhanced.height=h;
  const ectx=enhanced.getContext("2d",{willReadFrequently:true});
@@ -955,8 +985,22 @@ async function makeVariants(file,fallbackFile=null){
   data.data[i]=data.data[i+1]=data.data[i+2]=adjusted;
  }
  ectx.putImageData(data,0,0);
- const variants=[{name:fallbackFile?"perspective-corrected":"original",canvas:original},{name:"enhanced",canvas:enhanced}];
- if(fallbackFile){const fallbackImg=await loadImage(fallbackFile),fs=Math.min(2.2,2600/Math.max(fallbackImg.width,fallbackImg.height)),fw=Math.max(1,Math.round(fallbackImg.width*fs)),fh=Math.max(1,Math.round(fallbackImg.height*fs)),fallback=document.createElement("canvas");fallback.width=fw;fallback.height=fh;const fctx=fallback.getContext("2d");fctx.fillStyle="#fff";fctx.fillRect(0,0,fw,fh);fctx.drawImage(fallbackImg,0,0,fw,fh);variants.unshift({name:"original",canvas:fallback})}
+ const localContrast=makeLocalContrastVariant(original,w,h);
+ const variants=[
+  {name:fallbackFile?"perspective-corrected":"original",canvas:original},
+  {name:"enhanced",canvas:enhanced},
+  {name:"local-contrast",canvas:localContrast}
+ ];
+ if(fallbackFile){
+  const fallbackImg=await loadImage(fallbackFile);
+  const fs=Math.min(2.2,2600/Math.max(fallbackImg.width,fallbackImg.height));
+  const fw=Math.max(1,Math.round(fallbackImg.width*fs));
+  const fh=Math.max(1,Math.round(fallbackImg.height*fs));
+  const fallback=document.createElement("canvas");fallback.width=fw;fallback.height=fh;
+  const fctx=fallback.getContext("2d");fctx.fillStyle="#fff";fctx.fillRect(0,0,fw,fh);
+  fctx.drawImage(fallbackImg,0,0,fw,fh);
+  variants.unshift({name:"original",canvas:fallback});
+ }
  return variants;
 }
 
