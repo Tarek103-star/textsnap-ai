@@ -862,6 +862,47 @@ function loadImage(file){
   img.src=url;
  });
 }
+// Estimate small document/text skew by maximizing horizontal projection peaks.
+function estimateSkewAngle(source){
+ const maxSide=720,scale=Math.min(1,maxSide/Math.max(source.width,source.height));
+ const w=Math.max(1,Math.round(source.width*scale)),h=Math.max(1,Math.round(source.height*scale));
+ const sample=document.createElement("canvas");sample.width=w;sample.height=h;
+ const sctx=sample.getContext("2d",{willReadFrequently:true});
+ sctx.fillStyle="#fff";sctx.fillRect(0,0,w,h);sctx.drawImage(source,0,0,w,h);
+ const original=sctx.getImageData(0,0,w,h).data;
+ const work=document.createElement("canvas");work.width=w;work.height=h;
+ const ctx=work.getContext("2d",{willReadFrequently:true});
+ let bestAngle=0,bestScore=-Infinity;
+ for(let angle=-8;angle<=8.001;angle+=0.5){
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);
+  ctx.translate(w/2,h/2);ctx.rotate(angle*Math.PI/180);ctx.drawImage(sample,-w/2,-h/2);
+  const d=ctx.getImageData(0,0,w,h).data;
+  const rows=new Float64Array(h);let total=0;
+  for(let y=0;y<h;y++){
+   let count=0,offset=y*w*4;
+   for(let x=0;x<w;x++){
+    const i=offset+x*4;
+    if((d[i]*.299+d[i+1]*.587+d[i+2]*.114)<155)count++;
+   }
+   rows[y]=count;total+=count;
+  }
+  if(total<20)continue;
+  let mean=total/h,score=0;
+  for(let y=0;y<h;y++){const delta=rows[y]-mean;score+=delta*delta;}
+  if(score>bestScore){bestScore=score;bestAngle=angle;}
+ }
+ return Math.abs(bestAngle)<0.75?0:bestAngle;
+}
+function rotateCanvas(source,angle){
+ if(!angle)return source;
+ const radians=angle*Math.PI/180;
+ const w=Math.ceil(Math.abs(source.width*Math.cos(radians))+Math.abs(source.height*Math.sin(radians)));
+ const h=Math.ceil(Math.abs(source.width*Math.sin(radians))+Math.abs(source.height*Math.cos(radians)));
+ const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
+ const ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);
+ ctx.translate(w/2,h/2);ctx.rotate(radians);ctx.drawImage(source,-source.width/2,-source.height/2);
+ return canvas;
+}
 async function makeVariants(file){
  const img=await loadImage(file);
  const scale=Math.min(2.2,2600/Math.max(img.width,img.height));
@@ -872,6 +913,8 @@ async function makeVariants(file){
  ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);
  ctx.drawImage(img,0,0,w,h);
  const original=base;
+ const skewAngle=estimateSkewAngle(base);
+ const deskewed=rotateCanvas(base,skewAngle);
  const enhanced=document.createElement("canvas");
  enhanced.width=w;enhanced.height=h;
  const ectx=enhanced.getContext("2d",{willReadFrequently:true});
@@ -920,7 +963,7 @@ async function makeVariants(file){
   td.data[i]=td.data[i+1]=td.data[i+2]=v;
  }
  tctx.putImageData(td,0,0);
- return [original,enhanced,threshold];
+ return [original,deskewed,enhanced,threshold];
 }
 
 /* =========================
