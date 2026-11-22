@@ -168,6 +168,7 @@ textarea:focus,select:focus{border-color:#8aa9ff;box-shadow:0 0 0 3px #3268f51a}
   overflow:hidden;touch-action:none;user-select:none
 }
 .crop-stage img{display:block;max-width:100%;max-height:55vh;width:auto;height:auto}
+#applyPerspective[hidden],#applyCrop[hidden]{display:none!important}
 .perspective-layer{position:absolute;inset:0;display:none;pointer-events:none;z-index:3}
 .perspective-layer svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .perspective-layer polygon{fill:#35d8f222;stroke:#35d8f2;stroke-width:2;vector-effect:non-scaling-stroke}
@@ -619,7 +620,7 @@ const UI = {
   copied:"تم النسخ.",copyError:"تعذر النسخ. حدد النص وانسخه يدوياً.",
   choose:"يرجى اختيار صورة بصيغة مدعومة.",loading:"تحميل ملفات اللغة...",
   modeAuto:"تلقائي — أفضل محاولة",mode6:"نص عادي",mode3:"تخطيط تلقائي",
-  mode11:"نص متفرق",mode4:"أعمدة نصية",mode7:"سطر واحد"
+  mode11:"نص متفرق",mode4:"أعمدة نصية",mode7:"سطر واحد",perspectiveMode:"تصحيح منظور الشاشة",perspectiveBack:"العودة إلى القص المستطيل",perspectiveApply:"تطبيق تصحيح المنظور",perspectiveHelp:"اسحب الدوائر الأربع إلى زوايا الشاشة الفعلية، بالترتيب: أعلى اليسار، أعلى اليمين، أسفل اليمين، أسفل اليسار."
  },
  en:{
   privacyLabel:"Privacy Policy",installApp:"Install app",installNudgeTitle:"Install TextSnap AI on your phone",installNudgeText:"Get quicker access to image-to-text extraction and translation from your home screen.",installNudgeAction:"Install now",installHelp:"To install, open your browser menu and choose “Install app” or “Add to Home screen”.",title:"Turn images into text with ease",desc:"Extract text from images, edit, copy, translate or download. Supports a wide range of OCR languages.",
@@ -645,7 +646,7 @@ const UI = {
   copied:"Copied.",copyError:"Could not copy. Please select and copy manually.",
   choose:"Please choose a supported image.",loading:"Loading language files...",
   modeAuto:"Automatic — best attempt",mode6:"Uniform text block",mode3:"Automatic layout",
-  mode11:"Sparse text",mode4:"Columns of text",mode7:"Single text line"
+  mode11:"Sparse text",mode4:"Columns of text",mode7:"Single text line",perspectiveMode:"Correct screen perspective",perspectiveBack:"Back to rectangular crop",perspectiveApply:"Apply perspective correction",perspectiveHelp:"Drag the four circles to the actual screen corners: top-left, top-right, bottom-right, bottom-left."
  },
  fr:{
   privacyLabel:"Politique de confidentialité",installApp:"Installer l’application",installNudgeTitle:"Installez TextSnap AI sur votre téléphone",installNudgeText:"Accédez plus rapidement à l’extraction de texte et à la traduction depuis votre écran d’accueil.",installNudgeAction:"Installer",installHelp:"Pour installer l’application, ouvrez le menu du navigateur et choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».",title:"Transformez vos images en texte facilement",desc:"Extrayez le texte des images, modifiez-le, copiez-le, traduisez-le ou téléchargez-le. Plusieurs langues OCR sont disponibles.",
@@ -671,7 +672,7 @@ const UI = {
   copied:"Copié.",copyError:"Copie impossible. Copiez manuellement le texte.",
   choose:"Veuillez choisir une image compatible.",loading:"Chargement des fichiers de langue...",
   modeAuto:"Automatique — meilleur résultat",mode6:"Bloc de texte",mode3:"Mise en page auto",
-  mode11:"Texte dispersé",mode4:"Colonnes de texte",mode7:"Une seule ligne"
+  mode11:"Texte dispersé",mode4:"Colonnes de texte",mode7:"Une seule ligne",perspectiveMode:"Corriger la perspective",perspectiveBack:"Retour au recadrage",perspectiveApply:"Appliquer la correction",perspectiveHelp:"Déplacez les quatre points vers les coins réels de l’écran : haut gauche, haut droit, bas droit, bas gauche."
  }
 };
 
@@ -710,6 +711,7 @@ function applyUI(){
  $("mode").options[5].text=t.mode7;
  $("uiLanguage").textContent=uiLang==="ar"?"العربية / English / Français":uiLang==="en"?"English / Français / العربية":"Français / العربية / English";
  $("privacyLink").href="./privacy.html?lang="+uiLang;
+ if(typeof setPerspectiveMode==="function")setPerspectiveMode(perspectiveMode);
  $("installAppBtn").textContent=t.installApp;
  $("installHelp").textContent=t.installHelp;
  $("installFabText").textContent=t.installApp;
@@ -811,7 +813,7 @@ function drawCropBox(){
  b.style.left=cropRect.x+"%";b.style.top=cropRect.y+"%";
  b.style.width=cropRect.w+"%";b.style.height=cropRect.h+"%";
 }
-function setPerspectiveMode(enabled){perspectiveMode=enabled;$("cropBox").style.display=enabled?"none":"block";$("perspectiveLayer").style.display=enabled?"block":"none";$("applyCrop").hidden=enabled;$("applyPerspective").hidden=!enabled;$("perspectiveModeBtn").textContent=enabled?"العودة إلى القص المستطيل":"تصحيح منظور الشاشة"}
+function setPerspectiveMode(enabled){perspectiveMode=enabled;$("cropBox").style.display=enabled?"none":"block";$("perspectiveLayer").style.display=enabled?"block":"none";$("applyCrop").hidden=enabled;$("applyPerspective").hidden=!enabled;$("perspectiveModeBtn").textContent=enabled?UI[uiLang].perspectiveBack:UI[uiLang].perspectiveMode;$("applyPerspective").textContent=UI[uiLang].perspectiveApply;$("cropHelp").textContent=enabled?UI[uiLang].perspectiveHelp:UI[uiLang].cropHelp}
 function drawPerspectiveCorners(){const handles=$("perspectiveLayer").querySelectorAll("[data-corner]");handles.forEach((el,i)=>{el.style.left=perspectiveCorners[i].x+"%";el.style.top=perspectiveCorners[i].y+"%"});$("perspectivePolygon").setAttribute("points",perspectiveCorners.map(p=>p.x+","+p.y).join(" "))}
 $("perspectiveModeBtn").onclick=()=>setPerspectiveMode(!perspectiveMode);
 $("perspectiveLayer").querySelectorAll("[data-corner]").forEach(handle=>{handle.addEventListener("pointerdown",e=>{e.preventDefault();e.stopPropagation();perspectiveDrag=Number(handle.dataset.corner);handle.setPointerCapture(e.pointerId)});handle.addEventListener("pointermove",e=>{if(perspectiveDrag===null||perspectiveDrag!==Number(handle.dataset.corner))return;const r=$("cropStage").getBoundingClientRect();perspectiveCorners[perspectiveDrag]={x:Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)),y:Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100))};drawPerspectiveCorners()});const stop=()=>{perspectiveDrag=null};handle.addEventListener("pointerup",stop);handle.addEventListener("pointercancel",stop)});
@@ -850,7 +852,7 @@ $("cropBox").addEventListener("pointercancel",stopCrop);
 
 function solvePerspectiveMatrix(src,dst){const A=[],B=[];for(let i=0;i<4;i++){const x=dst[i].x,y=dst[i].y,u=src[i].x,v=src[i].y;A.push([x,y,1,0,0,0,-u*x,-u*y]);B.push(u);A.push([0,0,0,x,y,1,-v*x,-v*y]);B.push(v)}for(let i=0;i<8;i++){let p=i;for(let r=i+1;r<8;r++)if(Math.abs(A[r][i])>Math.abs(A[p][i]))p=r;if(Math.abs(A[p][i])<1e-10)throw Error("Invalid corners");[A[i],A[p]]=[A[p],A[i]];[B[i],B[p]]=[B[p],B[i]];const q=A[i][i];for(let j=i;j<8;j++)A[i][j]/=q;B[i]/=q;for(let r=0;r<8;r++)if(r!==i){const k=A[r][i];for(let j=i;j<8;j++)A[r][j]-=k*A[i][j];B[r]-=k*B[i]}}return B}
 async function createPerspectiveFile(){const img=$("cropImage"),scale=Math.min(1,2600/Math.max(img.naturalWidth,img.naturalHeight)),nw=Math.max(1,Math.round(img.naturalWidth*scale)),nh=Math.max(1,Math.round(img.naturalHeight*scale)),src=perspectiveCorners.map(p=>({x:p.x/100*nw,y:p.y/100*nh})),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),W=Math.max(1,Math.round(Math.max(dist(src[0],src[1]),dist(src[3],src[2])))),H=Math.max(1,Math.round(Math.max(dist(src[0],src[3]),dist(src[1],src[2])))),coef=solvePerspectiveMatrix(src,[{x:0,y:0},{x:W,y:0},{x:W,y:H},{x:0,y:H}]),input=document.createElement("canvas");input.width=nw;input.height=nh;const ictx=input.getContext("2d",{willReadFrequently:true});ictx.drawImage(img,0,0,nw,nh);const pixels=ictx.getImageData(0,0,nw,nh),output=document.createElement("canvas");output.width=W;output.height=H;const octx=output.getContext("2d",{willReadFrequently:true}),out=octx.createImageData(W,H),d=out.data,s=pixels.data,[a,b,c,d0,e,f,g,h]=coef;for(let y=0;y<H;y++)for(let x=0;x<W;x++){const z=g*x+h*y+1,u=(a*x+b*y+c)/z,v=(d0*x+e*y+f)/z,ix=Math.max(0,Math.min(nw-1,Math.round(u))),iy=Math.max(0,Math.min(nh-1,Math.round(v))),si=(iy*nw+ix)*4,di=(y*W+x)*4;d[di]=s[si];d[di+1]=s[si+1];d[di+2]=s[si+2];d[di+3]=255}octx.putImageData(out,0,0);const blob=await new Promise(resolve=>output.toBlob(resolve,"image/png"));if(!blob)throw Error("Warp failed");return new File([blob],"textsnap-perspective-corrected.png",{type:"image/png"})}
-$("applyPerspective").onclick=async()=>{try{const xs=perspectiveCorners.map(p=>p.x),ys=perspectiveCorners.map(p=>p.y);if(Math.max(...xs)-Math.min(...xs)<10||Math.max(...ys)-Math.min(...ys)<10)throw Error("Small area");const corrected=await createPerspectiveFile();perspectiveSourceFile=selectedFile;selectedFile=corrected;if(imageURL)URL.revokeObjectURL(imageURL);imageURL=URL.createObjectURL(corrected);$("preview").src=imageURL;$("cropModal").classList.remove("show");setStatus(uiLang==="ar"?"تم تصحيح المنظور؛ سيقارن OCR الصورة المصححة بالأصلية.":"Perspective corrected; OCR will compare corrected and original images.")}catch(e){setStatus(uiLang==="ar"?"تعذر تصحيح المنظور. تحقق من مواضع الزوايا الأربع.":"Perspective correction failed. Check the four corners.")}};
+$("applyPerspective").onclick=async()=>{try{const cross=perspectiveCorners.map((p,i)=>{const q=perspectiveCorners[(i+1)%4],r=perspectiveCorners[(i+2)%4];return(q.x-p.x)*(r.y-q.y)-(q.y-p.y)*(r.x-q.x)});if(cross.some(v=>Math.abs(v)<1)||cross.some(v=>Math.sign(v)!==Math.sign(cross[0])))throw Error("Corners must form a convex quadrilateral");const corrected=await createPerspectiveFile();perspectiveSourceFile=selectedFile;selectedFile=corrected;if(imageURL)URL.revokeObjectURL(imageURL);imageURL=URL.createObjectURL(corrected);$("preview").src=imageURL;$("cropModal").classList.remove("show");setStatus(uiLang==="ar"?"تم تصحيح المنظور؛ سيقارن OCR الصورة المصححة بالأصلية.":"Perspective corrected; OCR will compare corrected and original images.")}catch(e){setStatus(uiLang==="ar"?"تعذر تصحيح المنظور. تحقق من مواضع الزوايا الأربع.":"Perspective correction failed. Check the four corners.")}};
 $("applyCrop").onclick=async()=>{
  try{
   perspectiveSourceFile=null;
