@@ -888,8 +888,35 @@ async function makeVariants(file){
  threshold.width=w;threshold.height=h;
  const tctx=threshold.getContext("2d",{willReadFrequently:true});
  const td=ectx.getImageData(0,0,w,h);
+
+ // Otsu thresholding: choose a threshold from this image's own brightness histogram.
+ // This adapts better than a fixed value when photos are darker or brighter.
+ const histogram=new Uint32Array(256);
+ let total=0,sum=0;
  for(let i=0;i<td.data.length;i+=4){
-  const v=td.data[i]>170?255:0;
+  const value=td.data[i];
+  histogram[value]++;
+  total++;
+  sum+=value;
+ }
+ let sumBackground=0,weightBackground=0,maxVariance=-1,otsuThreshold=170;
+ for(let value=0;value<256;value++){
+  weightBackground+=histogram[value];
+  if(!weightBackground)continue;
+  const weightForeground=total-weightBackground;
+  if(!weightForeground)break;
+  sumBackground+=value*histogram[value];
+  const meanBackground=sumBackground/weightBackground;
+  const meanForeground=(sum-sumBackground)/weightForeground;
+  const variance=weightBackground*weightForeground*
+    (meanBackground-meanForeground)*(meanBackground-meanForeground);
+  if(variance>maxVariance){
+   maxVariance=variance;
+   otsuThreshold=value;
+  }
+ }
+ for(let i=0;i<td.data.length;i+=4){
+  const v=td.data[i]>otsuThreshold?255:0;
   td.data[i]=td.data[i+1]=td.data[i+2]=v;
  }
  tctx.putImageData(td,0,0);
