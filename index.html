@@ -908,62 +908,29 @@ async function makeVariants(file){
  const scale=Math.min(2.2,2600/Math.max(img.width,img.height));
  const w=Math.max(1,Math.round(img.width*scale));
  const h=Math.max(1,Math.round(img.height*scale));
- const base=document.createElement("canvas");base.width=w;base.height=h;
- const ctx=base.getContext("2d",{willReadFrequently:true});
+ const original=document.createElement("canvas");
+ original.width=w;original.height=h;
+ const ctx=original.getContext("2d",{willReadFrequently:true});
  ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);
  ctx.drawImage(img,0,0,w,h);
- const original=base;
- const skewAngle=estimateSkewAngle(base);
- const deskewed=rotateCanvas(base,skewAngle);
+
+ // Keep the automatic path conservative: the previous projection-based
+ // deskew and global Otsu threshold can damage photographed screens.
+ // Compare only the untouched image and a mild contrast-enhanced grayscale.
  const enhanced=document.createElement("canvas");
  enhanced.width=w;enhanced.height=h;
  const ectx=enhanced.getContext("2d",{willReadFrequently:true});
  const data=ctx.getImageData(0,0,w,h);
  for(let i=0;i<data.data.length;i+=4){
-  const r=data.data[i],g=data.data[i+1],b=data.data[i+2];
-  let gray=.299*r+.587*g+.114*b;
-  gray=Math.max(0,Math.min(255,(gray-128)*1.45+128));
-  data.data[i]=data.data[i+1]=data.data[i+2]=gray;
+  const gray=.299*data.data[i]+.587*data.data[i+1]+.114*data.data[i+2];
+  const adjusted=Math.max(0,Math.min(255,(gray-128)*1.25+128));
+  data.data[i]=data.data[i+1]=data.data[i+2]=adjusted;
  }
  ectx.putImageData(data,0,0);
-
- const threshold=document.createElement("canvas");
- threshold.width=w;threshold.height=h;
- const tctx=threshold.getContext("2d",{willReadFrequently:true});
- const td=ectx.getImageData(0,0,w,h);
-
- // Otsu thresholding: choose a threshold from this image's own brightness histogram.
- // This adapts better than a fixed value when photos are darker or brighter.
- const histogram=new Uint32Array(256);
- let total=0,sum=0;
- for(let i=0;i<td.data.length;i+=4){
-  const value=td.data[i];
-  histogram[value]++;
-  total++;
-  sum+=value;
- }
- let sumBackground=0,weightBackground=0,maxVariance=-1,otsuThreshold=170;
- for(let value=0;value<256;value++){
-  weightBackground+=histogram[value];
-  if(!weightBackground)continue;
-  const weightForeground=total-weightBackground;
-  if(!weightForeground)break;
-  sumBackground+=value*histogram[value];
-  const meanBackground=sumBackground/weightBackground;
-  const meanForeground=(sum-sumBackground)/weightForeground;
-  const variance=weightBackground*weightForeground*
-    (meanBackground-meanForeground)*(meanBackground-meanForeground);
-  if(variance>maxVariance){
-   maxVariance=variance;
-   otsuThreshold=value;
-  }
- }
- for(let i=0;i<td.data.length;i+=4){
-  const v=td.data[i]>otsuThreshold?255:0;
-  td.data[i]=td.data[i+1]=td.data[i+2]=v;
- }
- tctx.putImageData(td,0,0);
- return [original,deskewed,enhanced,threshold];
+ return [
+  {name:"original",canvas:original},
+  {name:"enhanced",canvas:enhanced}
+ ];
 }
 
 /* =========================
@@ -1039,6 +1006,29 @@ async function recognize(worker,canvas,psm,rtl){
  };
 }
 
+function renderOCRDiagnostics(items,best){
+ let panel=document.getElementById("ocrDiagnostics");
+ if(!panel){
+  panel=document.createElement("details");
+  panel.id="ocrDiagnostics";
+  panel.style.cssText="margin-top:12px;padding:10px;border:1px solid #dce5f2;border-radius:12px;background:#f8faff;font-size:12px;direction:ltr;text-align:left";
+  const summary=document.createElement("summary");
+  summary.textContent="OCR test details (development)";
+  summary.style.cssText="cursor:pointer;font-weight:700;color:#315cc2";
+  panel.appendChild(summary);
+  const body=document.createElement("div");
+  body.id="ocrDiagnosticsBody";
+  body.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;margin-top:8px";
+  panel.appendChild(body);
+  $("source").insertAdjacentElement("afterend",panel);
+ }
+ const body=document.getElementById("ocrDiagnosticsBody");
+ body.textContent=items.map(item=>{
+  const chosen=item===best?"  ← SELECTED":"";
+  return item.variant+" / PSM "+item.psm+" / confidence "+item.confidence.toFixed(1)+" / score "+item.score.toFixed(1)+chosen+"\n"+item.text;
+ }).join("\n\n");
+}
+
 async function loadTesseract(){if(window.Tesseract)return window.Tesseract;if(!tesseractLoadPromise){tesseractLoadPromise=new Promise((resolve,reject)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";s.onload=()=>resolve(window.Tesseract);s.onerror=()=>reject(new Error("تعذر تحميل مكتبة Tesseract.js من CDN. تحقق من الإنترنت."));document.head.appendChild(s)})}return tesseractLoadPromise}
 async function getWorker(lang){if(worker&&workerLang===lang)return worker;if(worker){try{await worker.terminate()}catch(e){}worker=null;workerLang=""}setProgress(1);setStatus(UI[uiLang].processing);const T=await loadTesseract();const languages=lang.split("+").filter(Boolean);const newWorker=await T.createWorker(languages,1,{workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js",corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5",langPath:"https://tessdata.projectnaptha.com/4.0.0",gzip:true,logger:m=>{if(m.status==="loading tesseract core")setStatus(uiLang==="ar"?"تحميل محرك OCR...":"Loading OCR core...");if(m.status==="loading language traineddata"){const p=Math.round((m.progress||0)*100);setProgress(Math.max(1,p));setStatus(UI[uiLang].loading+" "+p+"%")}if(m.status==="initializing tesseract")setStatus(uiLang==="ar"?"تهيئة محرك التعرف...":"Initializing OCR...");if(m.status==="recognizing text"){const p=Math.round((m.progress||0)*100);setProgress(10+Math.round(p*.85));setStatus((uiLang==="ar"?"جارٍ التعرف على النص: ":"Recognizing text: ")+p+"%")}},errorHandler:err=>console.error("Tesseract worker:",err)});worker=newWorker;workerLang=lang;return worker}
 
@@ -1055,16 +1045,23 @@ $("extract").onclick=async()=>{
   const mode=$("mode").value;
   const modes=mode==="auto"?[6,3,11]:[Number(mode)];
   let best=null,total=modes.length*variants.length,done=0;
+  const diagnostics=[];
   for(let vi=0;vi<variants.length;vi++){
    for(const psm of modes){
-    const candidate=await recognize(ocr,variants[vi],psm,rtl);
+    const candidate=await recognize(ocr,variants[vi].canvas,psm,rtl);
     done++;
-    candidate.score+=vi===0?1.5:0;
+    candidate.variant=variants[vi].name;
+    candidate.psm=psm;
+    // Small preference for the unmodified image; confidence remains the
+    // primary signal, but avoid allowing preprocessing to win by a tiny margin.
+    if(vi===0)candidate.score+=2;
+    diagnostics.push(candidate);
     if(!best||candidate.score>best.score)best=candidate;
     setProgress(10+Math.round(done/total*85));
    }
   }
   const finalText=cleanSpacing(best?.text||"");
+  renderOCRDiagnostics(diagnostics,best); 
   $("source").value=finalText;
   setProgress(100);
   setStatus(finalText?UI[uiLang].done:UI[uiLang].noText);
