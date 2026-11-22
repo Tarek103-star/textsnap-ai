@@ -933,8 +933,8 @@ function rotateCanvas(source,angle){
 }
 function makeLocalContrastVariant(source,w,h){
  // Estimate slowly changing background illumination at low resolution, then
- // normalize each pixel against that estimate. This handles colored gradients
- // and uneven lighting without forcing the image into hard black/white pixels.
+ // normalize each pixel against that estimate. Avoid hard thresholding so
+ // Arabic dots, diacritics and thin strokes remain available to Tesseract.
  const gray=document.createElement("canvas");gray.width=w;gray.height=h;
  const gctx=gray.getContext("2d",{willReadFrequently:true});
  const pixels=source.getContext("2d",{willReadFrequently:true}).getImageData(0,0,w,h);
@@ -951,15 +951,13 @@ function makeLocalContrastVariant(source,w,h){
  bctx.filter="blur("+Math.max(6,Math.round(Math.min(w,h)/55))+"px)";
  bctx.drawImage(small,0,0,w,h);
  bctx.filter="none";
- const base=gctx.getImageData(0,0,w,h);
  const bg=bctx.getImageData(0,0,w,h);
- for(let i=0;i<base.data.length;i+=4){
-  const normalized=Math.max(0,Math.min(255,128+(base.data[i]-bg.data[i])*.85));
-  base.data[i]=base.data[i+1]=base.data[i+2]=normalized;
+ for(let i=0;i<pixels.data.length;i+=4){
+  const normalized=Math.max(0,Math.min(255,128+(pixels.data[i]-bg.data[i])*.85));
+  pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=normalized;
  }
- const output=document.createElement("canvas");output.width=w;output.height=h;
- output.getContext("2d").putImageData(base,0,0);
- return output;
+ gctx.putImageData(pixels,0,0);
+ return gray;
 }
 
 async function makeVariants(file,fallbackFile=null){
